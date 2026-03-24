@@ -17,11 +17,18 @@ export const onRequest = async (context: any) => {
 
     if (request.method === 'POST') {
       const body = await request.json();
-      const { id, businessName, businessType, ownerEmail, adminUsername } = body;
+      const { businessName, businessType, ownerEmail, adminUsername } = body;
 
-      if (!id || !businessName || !ownerEmail) {
-        return json({ error: 'id, businessName, and ownerEmail are required' }, 400);
+      if (!businessName || !ownerEmail) {
+        return json({ error: 'businessName and ownerEmail are required' }, 400);
       }
+
+      // Auto-generate ID from business name if not provided
+      const id = body.id || businessName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 40) + '-' + generateId().slice(0, 6);
 
       // Generate random 8-char alphanumeric password if not provided
       const adminPassword = body.adminPassword || Array.from(crypto.getRandomValues(new Uint8Array(8)))
@@ -46,7 +53,8 @@ export const onRequest = async (context: any) => {
       ).bind(id).run();
 
       const row = await db.prepare('SELECT * FROM tenants WHERE id = ?').bind(id).first();
-      return json(rowToTenant(row), 201);
+      const tenant = rowToTenant(row);
+      return json({ ...tenant, generatedPassword: adminPassword }, 201);
     }
 
     return json({ error: 'Method not allowed' }, 405);
