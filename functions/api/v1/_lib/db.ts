@@ -226,3 +226,37 @@ export function rowToPaymentReminder(r: any) {
     createdAt: r.created_at,
   };
 }
+
+// ─── Multi-Tenant Helpers ────────────────────────────────────
+
+/** Extract tenant ID from request context (set by middleware) */
+export function getTenantId(context: any): string {
+  return context.tenantId || 'default';
+}
+
+export function rowToTenant(r: any) {
+  return {
+    id: r.id,
+    businessName: r.business_name,
+    businessType: r.business_type,
+    ownerEmail: r.owner_email,
+    adminUsername: r.admin_username,
+    status: r.status,
+    subscriptionTier: r.subscription_tier,
+    customDomain: r.custom_domain,
+    settingsJson: r.settings_json,
+    createdAt: r.created_at,
+    lastActiveAt: r.last_active_at,
+  };
+}
+
+export function rowToAuditEntry(r: any) {
+  return {
+    id: r.id,
+    tenantId: r.tenant_id,
+    action: r.action,
+    performedBy: r.performed_by,
+    details: r.details,
+    createdAt: r.created_at,
+  };
+}

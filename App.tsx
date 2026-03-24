@@ -2,7 +2,9 @@
 import React, { Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
+import { TenantProvider, useTenant } from './context/TenantContext';
 import Layout from './components/Layout';
+import ImpersonationBanner from './components/ImpersonationBanner';
 import ScrollToTop from './components/ScrollToTop';
 import { ToastProvider } from './components/Toast';
 
@@ -11,6 +13,7 @@ const Home = React.lazy(() => import('./pages/Home'));
 const Menu = React.lazy(() => import('./pages/Menu'));
 const OrderPage = React.lazy(() => import('./pages/Order'));
 const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard'));
+const PlatformDashboard = React.lazy(() => import('./pages/platform/PlatformDashboard'));
 const Login = React.lazy(() => import('./pages/Login'));
 const CustomerProfile = React.lazy(() => import('./pages/CustomerProfile'));
 const CustomerInsights = React.lazy(() => import('./pages/CustomerInsights'));
@@ -41,6 +44,13 @@ const ProtectedAdminRoute: React.FC<React.PropsWithChildren<{}>> = ({ children }
   return <>{children}</>;
 };
 
+// Protected DEV Route (platform owner only)
+const ProtectedDevRoute: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  const { user } = useApp();
+  if (!user || user.role !== 'DEV') return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
 // Protected Customer Route
 const ProtectedCustomerRoute: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
   const { user } = useApp();
@@ -50,6 +60,7 @@ const ProtectedCustomerRoute: React.FC<React.PropsWithChildren<{}>> = ({ childre
 
 const AppRoutes = () => {
   const { settings, user, isLoading, connectionError, businessConfig } = useApp();
+  const { isImpersonating } = useTenant();
   const feat = businessConfig.features;
   const location = useLocation();
 
@@ -65,10 +76,15 @@ const AppRoutes = () => {
       );
   }
 
+  // DEV user: redirect to platform dashboard (unless impersonating a tenant)
+  if (user?.role === 'DEV' && !isImpersonating && location.pathname === '/') {
+    return <Navigate to="/platform" replace />;
+  }
+
   // Maintenance Mode Check
   const isMaintenance = settings?.maintenanceMode;
-  const isAdmin = user?.role === 'ADMIN';
-  const isAllowedPath = ['/login', '/admin', '/setup'].some(path => location.pathname.startsWith(path));
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'DEV';
+  const isAllowedPath = ['/login', '/admin', '/setup', '/platform'].some(path => location.pathname.startsWith(path));
 
   if (isMaintenance && !isAdmin && !isAllowedPath) {
       return <Maintenance />;
@@ -76,6 +92,9 @@ const AppRoutes = () => {
 
   return (
     <Suspense fallback={<PageLoader />}>
+      {/* Impersonation Banner */}
+      <ImpersonationBanner />
+
       {isMaintenance && isAdmin && (
         <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white text-xs font-bold text-center py-1 z-[100] animate-pulse">
           MAINTENANCE MODE ACTIVE - Public access restricted
@@ -84,7 +103,14 @@ const AppRoutes = () => {
       <Routes>
         {/* Setup Route - Outside Layout for Focus */}
         <Route path="/setup" element={<DataSetup />} />
-        
+
+        {/* Platform Dashboard - DEV only */}
+        <Route path="/platform" element={
+          <ProtectedDevRoute>
+            <PlatformDashboard />
+          </ProtectedDevRoute>
+        } />
+
         {/* Main App Routes */}
         <Route path="*" element={
           <Layout>
@@ -156,10 +182,12 @@ const App: React.FC = () => {
   return (
     <ToastProvider>
       <AppProvider>
-        <HashRouter>
-          <ScrollToTop />
-          <AppRoutes />
-        </HashRouter>
+        <TenantProvider>
+          <HashRouter>
+            <ScrollToTop />
+            <AppRoutes />
+          </HashRouter>
+        </TenantProvider>
       </AppProvider>
     </ToastProvider>
   );

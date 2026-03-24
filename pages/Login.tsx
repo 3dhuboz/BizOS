@@ -52,7 +52,8 @@ const Login: React.FC = () => {
     try {
         if (mode === 'ADMIN') {
             await login(UserRole.ADMIN, adminUser, adminPass);
-            navigate('/admin');
+            // DEV users go to platform dashboard, ADMIN users go to admin dashboard
+            navigate(adminUser === 'dev' ? '/platform' : '/admin');
         } else if (mode === 'LOGIN') {
             if (!signInLoaded || !signIn) throw new Error('Auth not ready');
             const result = await signIn.create({ identifier: email, password });

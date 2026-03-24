@@ -373,3 +373,38 @@ export interface PaymentReminder {
   sentAt?: string;
   createdAt: string;
 }
+
+// ─── Multi-Tenant Platform Types ─────────────────────────────
+
+export interface Tenant {
+  id: string;
+  businessName: string;
+  businessType: BusinessType;
+  ownerEmail: string;
+  adminUsername?: string;
+  adminPassword?: string;
+  status: 'active' | 'suspended' | 'trial';
+  subscriptionTier: 'free' | 'starter' | 'pro';
+  customDomain?: string;
+  settingsJson?: string;
+  createdAt: string;
+  lastActiveAt?: string;
+}
+
+export interface TenantAuditEntry {
+  id: string;
+  tenantId: string;
+  action: string;
+  performedBy: string;
+  details?: string;
+  createdAt: string;
+}
+
+export interface PlatformStats {
+  totalTenants: number;
+  activeTenants: number;
+  totalOrders: number;
+  totalRevenue: number;
+  totalCustomers: number;
+  totalBookings: number;
+}

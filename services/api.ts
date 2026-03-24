@@ -2,15 +2,21 @@
  * API client for Cloudflare D1 backend.
  * All data goes through /api/v1/* endpoints.
  */
-import type { MenuItem, Order, CalendarEvent, User, SocialPost, GalleryPost, AppSettings, CustomerNote, CustomerStats, Booking, SharedPlan, SharedPlanResponse, CateringContract } from '../types';
+import type { MenuItem, Order, CalendarEvent, User, SocialPost, GalleryPost, AppSettings, CustomerNote, CustomerStats, Booking, SharedPlan, SharedPlanResponse, CateringContract, Tenant, PlatformStats } from '../types';
 
 let getToken: () => Promise<string | null> = async () => null;
 export const initApi = (tokenFn: () => Promise<string | null>) => { getToken = tokenFn; };
+
+// Tenant context — injected into every API request
+let currentTenantId: string | null = null;
+export const setTenantId = (id: string | null) => { currentTenantId = id; };
+export const getTenantId = () => currentTenantId;
 
 async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers as Record<string, string> || {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (currentTenantId) headers['X-Tenant-ID'] = currentTenantId;
   const res = await fetch(`/api/v1${path}`, { ...options, headers });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);

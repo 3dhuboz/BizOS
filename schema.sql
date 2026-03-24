@@ -2,11 +2,40 @@
 -- Run: wrangler d1 execute bizos-db --file=schema.sql
 
 -- ═══════════════════════════════════════════════════════════
--- CORE TABLES (existing)
+-- PLATFORM TABLES (multi-tenant management)
+-- ═══════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS tenants (
+  id TEXT PRIMARY KEY,
+  business_name TEXT NOT NULL,
+  business_type TEXT NOT NULL,
+  owner_email TEXT NOT NULL,
+  admin_username TEXT,
+  admin_password TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  subscription_tier TEXT DEFAULT 'free',
+  custom_domain TEXT,
+  settings_json TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  last_active_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tenant_audit_log (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  performed_by TEXT NOT NULL,
+  details TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- CORE TABLES (tenant-scoped)
 -- ═══════════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'CUSTOMER',
@@ -16,18 +45,18 @@ CREATE TABLE IF NOT EXISTS users (
   dietary_preferences TEXT,
   stamps INTEGER DEFAULT 0,
   has_catering_discount INTEGER DEFAULT 0,
-  -- CRM fields
-  tags TEXT,                          -- JSON: ["VIP","Corporate"]
-  notification_prefs TEXT,            -- JSON: {email,sms,marketing}
+  tags TEXT,
+  notification_prefs TEXT,
   lifetime_value REAL DEFAULT 0,
   last_order_date TEXT,
-  tier TEXT DEFAULT 'bronze',         -- bronze/silver/gold
+  tier TEXT DEFAULT 'bronze',
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS menu_items (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   name TEXT NOT NULL,
   description TEXT,
   price REAL NOT NULL,
@@ -49,6 +78,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
 
 CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   user_id TEXT,
   customer_name TEXT NOT NULL,
   customer_email TEXT,
@@ -72,7 +102,6 @@ CREATE TABLE IF NOT EXISTS orders (
   discount_applied INTEGER DEFAULT 0,
   payment_intent_id TEXT,
   square_checkout_id TEXT,
-  -- Payment tracking
   balance_due REAL DEFAULT 0,
   reminder_sent INTEGER DEFAULT 0,
   contract_id TEXT
@@ -80,6 +109,7 @@ CREATE TABLE IF NOT EXISTS orders (
 
 CREATE TABLE IF NOT EXISTS calendar_events (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   date TEXT NOT NULL,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -95,6 +125,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 
 CREATE TABLE IF NOT EXISTS social_posts (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   platform TEXT NOT NULL,
   content TEXT NOT NULL,
   image TEXT,
@@ -108,6 +139,7 @@ CREATE TABLE IF NOT EXISTS social_posts (
 
 CREATE TABLE IF NOT EXISTS gallery_posts (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   user_id TEXT NOT NULL,
   user_name TEXT NOT NULL,
   image_url TEXT NOT NULL,
@@ -119,33 +151,36 @@ CREATE TABLE IF NOT EXISTS gallery_posts (
 );
 
 CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  data TEXT NOT NULL
+  key TEXT NOT NULL,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
+  data TEXT NOT NULL,
+  PRIMARY KEY (key, tenant_id)
 );
 
 CREATE TABLE IF NOT EXISTS cook_days (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   date TEXT NOT NULL,
   location TEXT NOT NULL,
   is_open INTEGER DEFAULT 1
 );
 
 -- ═══════════════════════════════════════════════════════════
--- NEW TABLES (universal platform features)
+-- FEATURE TABLES (tenant-scoped)
 -- ═══════════════════════════════════════════════════════════
 
--- Customer Notes (CRM)
 CREATE TABLE IF NOT EXISTS customer_notes (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   user_id TEXT NOT NULL,
   note TEXT NOT NULL,
   created_by TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Self-service Bookings
 CREATE TABLE IF NOT EXISTS bookings (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   customer_name TEXT NOT NULL,
   customer_email TEXT NOT NULL,
   customer_phone TEXT,
@@ -165,9 +200,9 @@ CREATE TABLE IF NOT EXISTS bookings (
   order_id TEXT
 );
 
--- Shareable Group Planning
 CREATE TABLE IF NOT EXISTS shared_plans (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   host_name TEXT NOT NULL,
   host_email TEXT,
   title TEXT NOT NULL,
@@ -181,6 +216,7 @@ CREATE TABLE IF NOT EXISTS shared_plans (
 
 CREATE TABLE IF NOT EXISTS shared_plan_responses (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   shared_plan_id TEXT NOT NULL,
   respondent_name TEXT NOT NULL,
   respondent_email TEXT,
@@ -191,9 +227,9 @@ CREATE TABLE IF NOT EXISTS shared_plan_responses (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Digital Contracts / Agreements
 CREATE TABLE IF NOT EXISTS contracts (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   order_id TEXT,
   booking_id TEXT,
   customer_name TEXT NOT NULL,
@@ -205,9 +241,9 @@ CREATE TABLE IF NOT EXISTS contracts (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Payment Reminders
 CREATE TABLE IF NOT EXISTS payment_reminders (
   id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT 'default',
   booking_id TEXT,
   order_id TEXT,
   type TEXT NOT NULL,
@@ -216,3 +252,16 @@ CREATE TABLE IF NOT EXISTS payment_reminders (
   sent_at TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- ═══════════════════════════════════════════════════════════
+-- INDEXES
+-- ═══════════════════════════════════════════════════════════
+
+CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_menu_tenant ON menu_items(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_orders_tenant ON orders(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_events_tenant ON calendar_events(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_settings_tenant ON settings(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_tenant ON bookings(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_gallery_tenant ON gallery_posts(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_social_tenant ON social_posts(tenant_id);
