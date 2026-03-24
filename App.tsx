@@ -14,6 +14,7 @@ const Menu = React.lazy(() => import('./pages/Menu'));
 const OrderPage = React.lazy(() => import('./pages/Order'));
 const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard'));
 const PlatformDashboard = React.lazy(() => import('./pages/platform/PlatformDashboard'));
+const PlatformLogin = React.lazy(() => import('./pages/platform/PlatformLogin'));
 const Login = React.lazy(() => import('./pages/Login'));
 const CustomerProfile = React.lazy(() => import('./pages/CustomerProfile'));
 const CustomerInsights = React.lazy(() => import('./pages/CustomerInsights'));
@@ -103,6 +104,9 @@ const AppRoutes = () => {
       <Routes>
         {/* Setup Route - Outside Layout for Focus */}
         <Route path="/setup" element={<DataSetup />} />
+
+        {/* Platform Login - Clean BizOS-branded login, outside Layout */}
+        <Route path="/platform-login" element={<PlatformLogin />} />
 
         {/* Platform Dashboard - DEV only */}
         <Route path="/platform" element={
