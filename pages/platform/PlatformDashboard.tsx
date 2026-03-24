@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { BarChart3, Building2, LayoutTemplate, Activity, Cloud, WifiOff, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { BarChart3, Building2, LayoutTemplate, Activity, Cloud, WifiOff, Shield, LogOut } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import PlatformOverview from './PlatformOverview';
 import TenantList from './TenantList';
@@ -22,87 +22,94 @@ const TABS: TabDef[] = [
 ];
 
 const PlatformDashboard: React.FC = () => {
-  const { connectionError } = useApp();
+  const { connectionError, logout } = useApp();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   const activeLabel = TABS.find(t => t.id === activeTab)?.label ?? '';
+  const ActiveIcon = TABS.find(t => t.id === activeTab)?.icon ?? BarChart3;
 
   return (
-    <div className="flex -mx-4 md:-mx-8 min-h-[calc(100vh-160px)]">
+    <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
 
-      {/* Sidebar (desktop) */}
-      <aside className="hidden md:flex flex-col w-48 shrink-0 border-r border-gray-800/70 bg-gray-950/40">
-        <div className="px-4 py-4 border-b border-gray-800/70">
-          <div className="flex items-center gap-2">
-            <Shield size={12} className="text-purple-400" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400">
-              Platform
-            </p>
+      {/* ── Sidebar (desktop) ── */}
+      <aside className="hidden md:flex flex-col w-52 shrink-0 border-r border-gray-800/70 bg-gray-950">
+        {/* Brand */}
+        <div className="px-5 py-5 border-b border-gray-800/70">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-purple-600">
+              <Shield size={14} className="text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white tracking-wide">BizOS</p>
+              <p className="text-[10px] text-purple-400 font-medium uppercase tracking-widest">Platform</p>
+            </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {TABS.map(({ id, icon: Icon, label }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
                 activeTab === id
-                  ? 'bg-purple-700 text-white shadow-sm'
-                  : 'text-purple-300 hover:text-white hover:bg-purple-900/20'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-900/30'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Icon size={15} />
+              <Icon size={16} />
               {label}
             </button>
           ))}
         </nav>
 
-        <div className="px-3 py-3 border-t border-gray-800/70">
-          <span className="text-[10px] flex items-center gap-1.5 text-purple-400 mb-1.5">
-            <Shield size={10} /> Platform Owner
-          </span>
+        {/* Footer */}
+        <div className="px-4 py-4 border-t border-gray-800/70 space-y-2">
           {connectionError ? (
             <span className="text-[10px] flex items-center gap-1.5 text-red-400">
               <WifiOff size={10} /> Offline
             </span>
           ) : (
             <span className="text-[10px] flex items-center gap-1.5 text-green-500">
-              <Cloud size={10} /> Live
+              <Cloud size={10} /> Live · Cloudflare D1
             </span>
           )}
+          <button onClick={logout} className="text-[10px] flex items-center gap-1.5 text-gray-500 hover:text-white transition">
+            <LogOut size={10} /> Sign Out
+          </button>
         </div>
       </aside>
 
-      {/* Mobile tab bar */}
-      <div className="md:hidden fixed bottom-[72px] left-0 right-0 z-40 flex overflow-x-auto bg-gray-950/95 border-t border-gray-800 backdrop-blur-md">
+      {/* ── Mobile bottom nav ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex bg-gray-950 border-t border-gray-800">
         {TABS.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`flex flex-col items-center gap-0.5 px-3.5 py-2 shrink-0 text-[9px] font-bold uppercase tracking-wide transition-all flex-1 ${
-              activeTab === id ? 'text-white border-t-2 border-purple-500' : 'text-gray-500 border-t-2 border-transparent'
+            className={`flex flex-col items-center gap-1 py-3 flex-1 text-[10px] font-bold uppercase tracking-wide transition-all ${
+              activeTab === id ? 'text-purple-400 border-t-2 border-purple-500' : 'text-gray-500 border-t-2 border-transparent'
             }`}
           >
-            <Icon size={16} />
+            <Icon size={18} />
             {label}
           </button>
         ))}
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Section header bar */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-800/60 bg-gray-950/20">
-          {(() => { const t = TABS.find(x => x.id === activeTab); return t ? <t.icon size={15} className="text-purple-400" /> : null; })()}
+      {/* ── Main content ── */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-800/60 bg-gray-900/30 shrink-0">
+          <ActiveIcon size={16} className="text-purple-400" />
           <span className="text-sm font-semibold text-white">{activeLabel}</span>
-          <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded">
+          <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-purple-300 bg-purple-600/20 px-2.5 py-1 rounded-full border border-purple-500/20">
             DEV
           </span>
         </div>
 
         {/* Page content */}
-        <div className="flex-1 p-5 md:p-6 overflow-auto">
+        <div className="flex-1 overflow-auto p-6 pb-24 md:pb-6">
           {activeTab === 'overview'  && <PlatformOverview />}
           {activeTab === 'tenants'   && <TenantList />}
           {activeTab === 'templates' && <TemplateEditor />}
