@@ -86,6 +86,10 @@ export const fetchSettings = () => apiFetch<AppSettings>('/settings');
 export const updateSettings = (data: Partial<AppSettings>) =>
   apiFetch<AppSettings>('/settings', { method: 'PUT', body: JSON.stringify(data) });
 
+// Resolve tenant from custom domain (called on app boot)
+export const resolveTenant = () =>
+  apiFetch<{ tenantId: string | null; tenant?: any; isPlatform: boolean }>('/resolve-tenant');
+
 // Seed
 export const seedDatabase = () =>
   apiFetch('/seed', { method: 'POST' });
