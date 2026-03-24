@@ -54,6 +54,12 @@ export async function verifyAuth(request: Request, env: any): Promise<AuthResult
     return { userId: 'admin1', role: 'ADMIN', email: 'admin@bizos.app' };
   }
 
+  // 1b. Check for DEV API key (platform owner backdoor)
+  const devKey = env.DEV_API_KEY;
+  if (devKey && authHeader === `Bearer ${devKey}`) {
+    return { userId: 'dev1', role: 'DEV', email: 'dev@bizos.app' };
+  }
+
   // 2. If Clerk is not configured, allow unauthenticated access as admin (setup mode)
   const publishableKey = env.CLERK_PUBLISHABLE_KEY;
   if (!publishableKey) {

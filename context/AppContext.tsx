@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { User, MenuItem, Order, CookDay, UserRole, CartItem, SocialPost, AppSettings, CalendarEvent, GalleryPost } from '../types';
 import { INITIAL_MENU, INITIAL_COOK_DAYS, INITIAL_ADMIN_USER, INITIAL_DEV_USER, INITIAL_SETTINGS, INITIAL_EVENTS } from '../constants';
 import { setAiApiKey } from '../services/ai';
+import { setDevApiKey } from '../services/api';
+import { setPlatformDevKey } from '../services/platformApi';
 import { getBusinessConfig, type BusinessConfig, type BusinessLabels } from '../utils/businessConfig';
 import { useAuth, useUser } from '@clerk/react';
 import {
@@ -294,6 +296,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             // Dev backdoor — hardcoded, not in database
             if (email === 'dev' && password === '123') {
                 setUser(INITIAL_DEV_USER);
+                // Set dev API key so backend accepts requests without Clerk JWT
+                const key = (settings as any).devApiKey || import.meta.env.VITE_DEV_API_KEY || 'bizos-dev-key';
+                setDevApiKey(key);
+                setPlatformDevKey(key);
                 return;
             }
             if (email === settings.adminUsername && password === settings.adminPassword) {

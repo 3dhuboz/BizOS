@@ -12,10 +12,15 @@ let currentTenantId: string | null = null;
 export const setTenantId = (id: string | null) => { currentTenantId = id; };
 export const getTenantId = () => currentTenantId;
 
+// Dev API key — for local dev backdoor auth (set when dev logs in without Clerk)
+let devApiKey: string | null = null;
+export const setDevApiKey = (key: string | null) => { devApiKey = key; };
+
 async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers as Record<string, string> || {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  else if (devApiKey) headers['Authorization'] = `Bearer ${devApiKey}`;
   if (currentTenantId) headers['X-Tenant-ID'] = currentTenantId;
   const res = await fetch(`/api/v1${path}`, { ...options, headers });
   if (!res.ok) {
